@@ -1,0 +1,97 @@
+#!/usr/bin/env sh
+
+# MIT License
+# 
+# Copyright (c) 2023 Justin Teague
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+set -eu
+LC_ALL=C
+
+dcmp_config_file="${dcmp_config_file:-$HOME/.${0##*/}}"
+dcmp_working_dir="${dcmp_working_dir:-$PWD}"
+dcmp_docker_compose_bin="${dcmp_docker_compose_bin:-}"
+dcmp_compose_filename="docker-compose.yml docker-compose.yaml
+compose.yml compose.yaml
+"
+
+usage() {
+  cat << EOF
+
+  Usage:
+  ${0##*/}  [-f <config file> ] [-d <working dir> ] commands
+  ${0##*/}  -h
+
+  GLOBAL ARGUMENTS
+  -d <dir>    Working directory   (default: .)
+  -f <file>   Configuration file  (default: \$HOME/.${0##*/})
+
+  CONFIGURATION VARIABLES
+  dcmp_working_dir=
+  dcmp_docker_compose_bin=
+  dcmp_docker_compose_filename=
+
+EOF
+}
+
+main() {
+
+  if [ -z "$dcmp_docker_compose_bin" ]; then
+    if command -v docker-compose >/dev/null 2>&1; then
+      dcmp_docker_compose_bin="docker-compose"
+    elif command -v docker >/dev/null 2>&1; then
+      dcmp_docker_compose_bin="$(command -v docker) compose"
+    else
+      printf >&2 'ERROR: docker-compose or docker compose not installed?\n'
+      exit 1
+    fi
+  fi
+
+  while getopts 'd:f:h' arg; do
+    case "$arg" in
+      d) dcmp_working_dir="$OPTARG" ;;
+      f) dcmp_config_file="$OPTARG" ;;
+      h) usage ; exit 0 ;;
+      *) usage ; exit 1 ;;
+    esac
+  done
+  shift $(( OPTIND - 1 ))
+
+  if [ "$#" -eq 0 ]; then
+    usage ; exit 1
+  fi
+
+  if [ -r "$dcmp_config_file" ]; then
+    # shellcheck disable=SC1090
+    . "$dcmp_config_file" || exit 1
+  fi
+
+  for d in "$dcmp_working_dir"/*; do
+    [ -d "$d" ] || continue
+    for f in $dcmp_compose_filename; do
+      if [ -r "$d/$f" ]; then
+        $dcmp_docker_compose_bin -f "$d/$f" "$@"
+      fi
+    done
+  done
+
+}
+
+main "$@"
