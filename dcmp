@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# dcmp(7)
+# dcmp(8)
 # A wrapper script to handle multiple docker compose files at once
 
 set -eu
