@@ -67,14 +67,17 @@ EOF
 
 main() {
 
+  # Dependency check
   if [ -z "$dcmp_docker_compose_bin" ]; then
-    if command -v docker-compose >/dev/null 2>&1; then
-      dcmp_docker_compose_bin="$(command -v docker-compose)"
-    elif command -v docker >/dev/null 2>&1; then
-      dcmp_docker_compose_bin="$(command -v docker) compose"
-    else
-      printf >&2 'ERROR: docker-compose or docker compose not installed?\n'
-      exit 1
+    if ! dcmp_docker_compose_bin="$(command -v docker-compose 2>/dev/null)"; then
+      if command -v docker >/dev/null 2>&1; then
+        dcmp_docker_compose_bin="$(command -v docker) compose"
+      fi
+      else
+        printf >&2 'ERROR:\ndocker-compose or docker compose not installed?\n'
+        printf >&2 'or set docker compose with environment variable:\n'
+        printf >&2 '\tdcmp_docker_compose_bin=\n'
+        exit 1
     fi
   fi
 
